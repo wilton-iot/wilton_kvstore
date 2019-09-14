@@ -164,7 +164,7 @@ public:
 
     uint32_t size(kvstore&) {
         std::lock_guard<std::mutex> guard{mutex};
-        return registry.size();
+        return static_cast<uint32_t>(registry.size());
     }
 
     std::vector<sl::json::value> keys(kvstore&) {

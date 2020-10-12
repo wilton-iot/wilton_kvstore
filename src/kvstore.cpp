@@ -144,6 +144,31 @@ public:
         }
     }
 
+    uint32_t dequeue(kvstore&, const std::string& key, uint32_t count) {
+        std::lock_guard<std::mutex> guard{mutex};
+        if (0 == count) {
+            return 0;
+        }
+        auto it = registry.find(key);
+        if (registry.end() != it) {
+            auto& en = it->second;
+            auto& el = en.first;
+            auto& vec = el.as_array_or_throw(key);
+            if (count >= vec.size()) {
+                auto res = vec.size();
+                vec.clear();
+                return static_cast<uint32_t>(res);
+            } else {
+                auto to = vec.begin();
+                std::advance(to, count);
+                vec.erase(vec.begin(), to);
+                return count;
+            }
+        } else {
+            return 0;
+        }
+    }
+
     bool remove(kvstore&, const std::string& key) {
         std::lock_guard<std::mutex> guard{mutex};
         return remove_entry(key);
@@ -286,6 +311,7 @@ PIMPL_FORWARD_METHOD(kvstore, std::vector<sl::json::field>, get_batch, (const st
 PIMPL_FORWARD_METHOD(kvstore, sl::json::value, put, (const std::string&)(sl::json::value), (), support::exception)
 PIMPL_FORWARD_METHOD(kvstore, std::vector<sl::json::field>, put_batch, (std::vector<sl::json::field>), (), support::exception)
 PIMPL_FORWARD_METHOD(kvstore, bool, append, (const std::string&)(std::vector<sl::json::value>), (), support::exception)
+PIMPL_FORWARD_METHOD(kvstore, uint32_t, dequeue, (const std::string&)(uint32_t), (), support::exception)
 PIMPL_FORWARD_METHOD(kvstore, bool, remove, (const std::string&), (), support::exception)
 PIMPL_FORWARD_METHOD(kvstore, std::vector<sl::json::value>, remove_batch, (const std::vector<sl::json::value>&), (), support::exception)
 PIMPL_FORWARD_METHOD(kvstore, uint32_t, size, (), (), support::exception)

@@ -206,6 +206,30 @@ char* wilton_KVStore_append(
     }
 }
 
+char* wilton_KVStore_dequeue(
+        wilton_KVStore* store,
+        const char* key,
+        int key_len,
+        int count,
+        int* dequeued_count_out) /* noexcept */ {
+    if (nullptr == store) return wilton::support::alloc_copy(TRACEMSG("Null 'store' parameter specified"));
+    if (nullptr == key) return wilton::support::alloc_copy(TRACEMSG("Null 'key' parameter specified"));
+    if (!sl::support::is_uint16_positive(key_len)) return wilton::support::alloc_copy(TRACEMSG(
+            "Invalid 'key_len' parameter specified: [" + sl::support::to_string(key_len) + "]"));
+    if (!sl::support::is_uint32(count)) return wilton::support::alloc_copy(TRACEMSG(
+            "Invalid 'count' parameter specified: [" + sl::support::to_string(count) + "]"));
+    if (nullptr == dequeued_count_out) return wilton::support::alloc_copy(TRACEMSG("Null 'count_dequeued_out' parameter specified"));
+    try {
+        auto key_str = std::string(key, static_cast<uint16_t>(key_len));
+        auto count_u32 = static_cast<uint32_t>(count);
+        auto res = store->impl().dequeue(key, count_u32);
+        *dequeued_count_out = static_cast<int>(res);
+        return nullptr;
+    } catch (const std::exception& e) {
+        return wilton::support::alloc_copy(TRACEMSG(e.what() + "\nException raised"));
+    }
+}
+
 char* wilton_KVStore_remove(
         wilton_KVStore* store,
         const char* key,

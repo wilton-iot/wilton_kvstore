@@ -74,6 +74,13 @@ char* wilton_KVStore_append(
         int value_list_json_len,
         int* key_existed_out);
 
+char* wilton_KVStore_dequeue(
+        wilton_KVStore* store,
+        const char* key,
+        int key_len,
+        int count,
+        int* dequeued_count_out);
+
 char* wilton_KVStore_remove(
         wilton_KVStore* store,
         const char* key,

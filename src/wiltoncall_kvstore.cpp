@@ -260,6 +260,47 @@ support::buffer append(sl::io::span<const char> data) {
     });
 }
 
+support::buffer dequeue(sl::io::span<const char> data) {
+    // json parse
+    auto json = sl::json::load(data);
+    int64_t handle = -1;
+    auto rkey = std::ref(sl::utils::empty_string());
+    int64_t count = -1;
+    for (const sl::json::field& fi : json.as_object()) {
+        auto& name = fi.name();
+        if ("kvstoreHandle" == name) {
+            handle = fi.as_int64_or_throw(name);
+        } else if ("key" == name) {
+            rkey = fi.as_string_nonempty_or_throw(name);
+        } else if ("count" == name) {
+            count = fi.as_int64_or_throw(name);
+        } else {
+            throw support::exception(TRACEMSG("Unknown data field: [" + name + "]"));
+        }
+    }
+    if (-1 == handle) throw support::exception(TRACEMSG(
+            "Required parameter 'kvstoreHandle' not specified"));
+    if (rkey.get().empty()) throw support::exception(TRACEMSG(
+            "Required parameter 'key' not specified"));
+    if (-1 == count) throw support::exception(TRACEMSG(
+            "Required parameter 'count' not specified"));
+    const std::string& key = rkey.get();
+    // get handle
+    auto reg = store_registry();
+    auto store = reg->peek(handle);
+    if (nullptr == store.get()) throw support::exception(TRACEMSG(
+            "Invalid 'kvstoreHandle' parameter specified"));
+    // call wilton
+    int dequeued_count = -1;
+    auto err = wilton_KVStore_dequeue(store.get(),
+            key.c_str(), static_cast<int>(key.length()),
+            static_cast<int>(count), std::addressof(dequeued_count));
+    if (nullptr != err) support::throw_wilton_error(err, TRACEMSG(err));
+    return support::make_json_buffer({
+        { "dequeuedCount", dequeued_count }
+    });
+}
+
 support::buffer remove(sl::io::span<const char> data) {
     // json parse
     auto json = sl::json::load(data);
@@ -506,6 +547,7 @@ extern "C" char* wilton_module_init() {
         wilton::support::register_wiltoncall("kvstore_put", wilton::kvstore::put);
         wilton::support::register_wiltoncall("kvstore_put_batch", wilton::kvstore::put_batch);
         wilton::support::register_wiltoncall("kvstore_append", wilton::kvstore::append);
+        wilton::support::register_wiltoncall("kvstore_dequeue", wilton::kvstore::dequeue);
         wilton::support::register_wiltoncall("kvstore_remove", wilton::kvstore::remove);
         wilton::support::register_wiltoncall("kvstore_remove_batch", wilton::kvstore::remove_batch);
         wilton::support::register_wiltoncall("kvstore_size", wilton::kvstore::size);

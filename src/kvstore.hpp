@@ -65,6 +65,8 @@ public:
 
     bool append(const std::string& key, std::vector<sl::json::value> values);
 
+    uint32_t dequeue(const std::string& key, uint32_t count);
+
     bool remove(const std::string& key);
 
     std::vector<sl::json::value> remove_batch(const std::vector<sl::json::value>& keys);
